@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from io import BytesIO
+import numpy as np
 
 st.set_page_config(page_title="KPIs Réseau Hebdo", layout="wide")
 
@@ -85,6 +86,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 # ─── Utilitaires ───
 def fmt(v):
     if pd.isna(v):
@@ -107,15 +109,46 @@ def delta_str(g):
     arrow = "↑" if g >= 0 else "↓"
     pct = f"{abs(g):.1f}%"
     color = "#16a34a" if g >= 0 else "#dc2626"
-    bg   = "rgba(22,163,74,0.10)" if g >= 0 else "rgba(220,38,38,0.10)"
+    bg = "rgba(22,163,74,0.10)" if g >= 0 else "rgba(220,38,38,0.10)"
     return f'<span style="color:{color}; background:{bg}; padding:4px 9px; border-radius:6px;">{arrow} {pct}</span>'
 
 
 def create_sparkline(df_plot, y_col, x_col='Semaine', height=150):
-    if df_plot.empty or y_col not in df_plot.columns:
+    if df_plot.empty or y_col not in df_plot.columns or len(df_plot) < 2:
         return None
 
     fig = px.line(df_plot, x=x_col, y=y_col, markers=True)
+
+    # === AMÉLIORATION ÉCHELLE Y (rendre les petites variations visibles) ===
+    y_values = df_plot[y_col].dropna()
+    if len(y_values) >= 2:
+        y_min = y_values.min()
+        y_max = y_values.max()
+        y_range = y_max - y_min
+
+        if y_range == 0:  # toutes les valeurs identiques
+            padding = abs(y_min) * 0.05 if y_min != 0 else 1
+            y_min -= padding
+            y_max += padding
+        else:
+            padding = y_range * 0.08  # 8% de padding pour mieux voir les variations
+            y_min -= padding
+            y_max += padding
+
+        fig.update_yaxes(range=[y_min, y_max], autorange=False)
+
+    # === AMÉLIORATION AXE X : seulement extrémités + milieu ===
+    n = len(df_plot)
+    if n >= 3:
+        tick_positions = [df_plot.iloc[0][x_col],
+                          df_plot.iloc[n // 2][x_col],
+                          df_plot.iloc[-1][x_col]]
+        tick_texts = [df_plot.iloc[0][x_col],
+                      df_plot.iloc[n // 2][x_col],
+                      df_plot.iloc[-1][x_col]]
+    else:
+        tick_positions = df_plot[x_col].tolist()
+        tick_texts = df_plot[x_col].tolist()
 
     fig.update_traces(
         line=dict(color='#3b82f6', width=2.4),
@@ -130,6 +163,9 @@ def create_sparkline(df_plot, y_col, x_col='Semaine', height=150):
         showlegend=False,
         xaxis=dict(
             title=None,
+            tickmode='array',
+            tickvals=tick_positions,
+            ticktext=tick_texts,
             tickangle=-40,
             tickfont=dict(size=11, color='#4b5563'),
             showgrid=True,
@@ -148,7 +184,7 @@ def create_sparkline(df_plot, y_col, x_col='Semaine', height=150):
     return fig
 
 
-# ─── Chargement ───
+# ─── Chargement ─── (inchangé)
 @st.cache_data
 def load_kpi_file(file_bytes):
     kpis_data = {}
@@ -159,7 +195,7 @@ def load_kpi_file(file_bytes):
                 if len(df.columns) < 2:
                     continue
                 week_col = df.columns[0]
-                val_col  = df.columns[1]
+                val_col = df.columns[1]
                 df = df[[week_col, val_col]].copy()
                 df.rename(columns={week_col: 'Semaine', val_col: 'Valeur'}, inplace=True)
                 df['Valeur'] = pd.to_numeric(df['Valeur'], errors='coerce')
@@ -174,7 +210,7 @@ def load_kpi_file(file_bytes):
     return kpis_data
 
 
-# ─── Interface ───
+# ─── Interface ─── (le reste reste identique)
 st.markdown("""
     <div class="header-container">
         <h1 class="header-title">KPIs Réseau Hebdo</h1>
@@ -201,30 +237,27 @@ if uploaded:
     for idx, (title, info) in enumerate(kpis_data.items()):
         df = info['df']
         if len(df) < 3:
-            # Pas assez de lignes pour WoW + YoY
             continue
 
         n = len(df)
 
-        # ─── Valeurs des 3 dernières lignes ───
-        current_row   = df.iloc[n-2]          # semaine actuelle
-        prev_row      = df.iloc[n-3]          # semaine précédente
-        last_year_row = df.iloc[n-1]          # même semaine année précédente
+        current_row = df.iloc[n - 2]
+        prev_row = df.iloc[n - 3]
+        last_year_row = df.iloc[n - 1]
 
-        current_val   = current_row['Valeur']
-        current_week  = current_row['Semaine']
+        current_val = current_row['Valeur']
+        current_week = current_row['Semaine']
 
-        prev_val      = prev_row['Valeur']
-        prev_week     = prev_row['Semaine']
+        prev_val = prev_row['Valeur']
+        prev_week = prev_row['Semaine']
 
-        yoy_ref_val   = last_year_row['Valeur']
-        yoy_ref_week  = last_year_row['Semaine']
+        yoy_ref_val = last_year_row['Valeur']
+        yoy_ref_week = last_year_row['Semaine']
 
-        # Calculs
         wow_pct = ((current_val - prev_val) / prev_val * 100) if prev_val != 0 and pd.notna(prev_val) else None
-        yoy_pct = ((current_val - yoy_ref_val) / yoy_ref_val * 100) if yoy_ref_val != 0 and pd.notna(yoy_ref_val) else None
+        yoy_pct = ((current_val - yoy_ref_val) / yoy_ref_val * 100) if yoy_ref_val != 0 and pd.notna(
+            yoy_ref_val) else None
 
-        # Données pour le graphique : tout sauf la dernière ligne (année précédente)
         df_plot = df.iloc[:-1].copy()
 
         col = cols[idx % 5]
@@ -237,7 +270,6 @@ if uploaded:
                 value=fmt(current_val),
             )
 
-            # WoW
             if wow_pct is not None:
                 delta_wow = delta_str(wow_pct)
                 txt_wow = f"vs {fmt(prev_val)} {prev_week}"
@@ -248,7 +280,6 @@ if uploaded:
             else:
                 st.markdown('<div class="delta-text">WoW — données incomplètes</div>', unsafe_allow_html=True)
 
-            # YoY
             if yoy_pct is not None:
                 delta_yoy = delta_str(yoy_pct)
                 txt_yoy = f"vs {fmt(yoy_ref_val)} {yoy_ref_week}"
@@ -259,7 +290,6 @@ if uploaded:
             else:
                 st.markdown('<div class="delta-text">YoY — données incomplètes</div>', unsafe_allow_html=True)
 
-            # Sparkline (sans la ligne YoY)
             fig = create_sparkline(df_plot, 'Valeur', height=150)
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
@@ -267,13 +297,9 @@ if uploaded:
             st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    # On prend la semaine actuelle (avant-dernière ligne du premier df)
     if kpis_data:
         first_df = list(kpis_data.values())[0]['df']
-        if len(first_df) >= 2:
-            last_real_week = first_df.iloc[-2]['Semaine']
-        else:
-            last_real_week = "—"
+        last_real_week = first_df.iloc[-2]['Semaine'] if len(first_df) >= 2 else "—"
     else:
         last_real_week = "—"
 
