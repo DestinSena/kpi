@@ -117,7 +117,7 @@ def create_sparkline(df_plot, y_col, x_col='Semaine', height=150):
     if df_plot.empty or y_col not in df_plot.columns or len(df_plot) < 2:
         return None
 
-    fig = px.line(df_plot, x=x_col, y=y_col, markers=True)
+    fig = px.line(df_plot, x=x_col, y=y_col)   # ← markers=True supprimé
 
     # === AMÉLIORATION ÉCHELLE Y (rendre les petites variations visibles) ===
     y_values = df_plot[y_col].dropna()
@@ -131,7 +131,7 @@ def create_sparkline(df_plot, y_col, x_col='Semaine', height=150):
             y_min -= padding
             y_max += padding
         else:
-            padding = y_range * 0.08  # 8% de padding pour mieux voir les variations
+            padding = y_range * 0.08
             y_min -= padding
             y_max += padding
 
@@ -152,7 +152,7 @@ def create_sparkline(df_plot, y_col, x_col='Semaine', height=150):
 
     fig.update_traces(
         line=dict(color='#3b82f6', width=2.4),
-        marker=dict(size=7, color='#1e40af', line=dict(width=1.5, color='#ffffff')),
+        # marker supprimé complètement
         fill='tozeroy',
         fillcolor='rgba(59,130,246,0.07)'
     )
@@ -210,7 +210,7 @@ def load_kpi_file(file_bytes):
     return kpis_data
 
 
-# ─── Interface ─── (le reste reste identique)
+# ─── Interface ───
 st.markdown("""
     <div class="header-container">
         <h1 class="header-title">KPIs Réseau Hebdo</h1>
