@@ -6,16 +6,22 @@ import numpy as np
 
 st.set_page_config(page_title="KPIs Réseau Hebdo", layout="wide")
 
-# ─── CSS ─── (inchangé)
-st.markdown("""
+# ─── Couleurs Yas ───
+YAS_BLUE = "#003DA5"
+YAS_BLUE_LIGHT = "#3b6fd6"
+YAS_YELLOW = "#FFC72C"
+YAS_YELLOW_LIGHT = "#FFE8A3"
+
+# ─── CSS ───
+st.markdown(f"""
     <style>
-        .stApp {
+        .stApp {{
             background-color: #ffffff;
             color: #111111;
             font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-        }
-        .header-container {
-            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }}
+        .header-container {{
+            background: linear-gradient(135deg, {YAS_YELLOW_LIGHT}22 0%, #ffffff 100%);
             border-radius: 16px;
             padding: 32px 28px;
             margin: 24px auto;
@@ -23,46 +29,49 @@ st.markdown("""
             box-shadow: 0 8px 32px rgba(0,0,0,0.06);
             text-align: center;
             border: 1px solid #e5e7eb;
-        }
-        .header-title {
-            color: #1d4ed8;
+            border-top: 5px solid {YAS_YELLOW};
+        }}
+        .header-title {{
+            color: {YAS_BLUE};
             font-size: 2.8rem;
             font-weight: 900;
             margin-bottom: 10px;
-        }
-        .header-subtitle {
+        }}
+        .header-subtitle {{
             color: #4b5563;
             font-size: 1.3rem;
-        }
-        .kpi-card {
+        }}
+        .kpi-card {{
             background: #ffffff;
             border-radius: 14px;
             padding: 24px 20px;
             border: 1px solid #e5e7eb;
+            border-top: 4px solid {YAS_YELLOW};
             box-shadow: 0 6px 24px rgba(0,0,0,0.06);
             margin-bottom: 24px;
             transition: all 0.22s ease;
-        }
-        .kpi-card:hover {
+        }}
+        .kpi-card:hover {{
             transform: translateY(-3px);
             box-shadow: 0 12px 36px rgba(0,0,0,0.10);
-        }
-        [data-testid="stMetricLabel"] p {
+            border-top: 4px solid {YAS_BLUE};
+        }}
+        [data-testid="stMetricLabel"] p {{
             font-size: 1.65rem !important;
             font-weight: 700 !important;
-            color: #1f2937 !important;
+            color: {YAS_BLUE} !important;
             margin-bottom: 4px !important;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        [data-testid="stMetricValue"] {
+        }}
+        [data-testid="stMetricValue"] {{
             font-size: 2.9rem !important;
             font-weight: 900 !important;
             color: #111827 !important;
             letter-spacing: -0.8px;
-        }
-        .delta-text {
+        }}
+        .delta-text {{
             font-size: 1.12rem !important;
             font-weight: 700 !important;
             margin-top: 10px !important;
@@ -70,19 +79,19 @@ st.markdown("""
             border-radius: 8px;
             background: rgba(0,0,0,0.035);
             display: block;
-        }
+        }}
         div[data-testid="stFileUploaderDropzone"],
         div[data-testid="stFileUploader"] label,
-        div[data-testid="stFileUploaderFileList"] {
+        div[data-testid="stFileUploaderFileList"] {{
             display: none !important;
-        }
-        .stPlotlyChart {
+        }}
+        .stPlotlyChart {{
             background: #ffffff;
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid #e5e7eb;
             margin-top: 12px;
-        }
+        }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -151,10 +160,10 @@ def create_sparkline(df_plot, y_col, x_col='Semaine', height=150):
         tick_texts = df_plot[x_col].tolist()
 
     fig.update_traces(
-        line=dict(color='#3b82f6', width=2.4),
+        line=dict(color=YAS_BLUE, width=2.4),
         # marker supprimé complètement
         fill='tozeroy',
-        fillcolor='rgba(59,130,246,0.07)'
+        fillcolor='rgba(255,199,44,0.12)'
     )
 
     fig.update_layout(
